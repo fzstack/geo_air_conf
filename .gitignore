@@ -1,0 +1,7 @@
+.qt_for_python/
+build/
+dist/
+.venv/
+__pycache__
+*.spec
+*_ui.py

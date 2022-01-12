@@ -1,0 +1,5 @@
+asyncserial==0.1.0
+Mako==1.1.5
+PyQt5==5.15.6
+pyserial==3.5
+qasync==0.22.0

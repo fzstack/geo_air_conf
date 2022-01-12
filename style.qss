@@ -1,0 +1,39 @@
+QDialog {
+    background-color: white;
+}
+
+* {
+    font-size: 14px;
+    color: rgba(0, 0, 0, 80%);
+    widget-animation-duration: 100;
+}
+
+QPushButton {
+    min-height: 28px;
+    border-radius: 4px;
+    border-color: #025364;
+    color: #025364;
+    background-color:transparent;
+    border-width: 1px;
+    border-style:solid;
+    widget-animation-duration: 100;
+}
+
+QPushButton:hover {
+    background-color:rgba(0, 0, 0, 10%);
+}
+
+QPushButton:pressed {
+    background-color:rgba(2, 83, 100, 20%);
+}
+
+QPushButton:disabled {
+    background-color:rgba(191, 113, 30, 20%);
+    border-color: #BF7130;
+    color: #BF7130;
+}
+
+#copyright {
+    font-size: 10px;
+    color: rgba(0, 0, 0, 60%);
+}
