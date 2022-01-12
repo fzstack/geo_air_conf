@@ -166,6 +166,9 @@ def computed(bind=None):
         return property(getter)
     return deco
 
+def control(func):
+    return computed(bind=func.__name__)(func)
+
 def _get_property_that(clx, pred):
     return [p for p in [getattr(clx, p) for p in dir(clx)] if isinstance(p, property) and pred(p)]
 

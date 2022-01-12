@@ -1,4 +1,4 @@
-from reactive_dialog import ReactiveDialog, state, computed
+from reactive_dialog import ReactiveDialog, state, computed, control
 from dialog_base import aconn
 from main_ui import Ui_Main
 import asyncio
@@ -26,7 +26,7 @@ class MainDialog(ReactiveDialog):
         if self.reg_state == RegState.Wait:
             self.reg_state = RegState.Process
             await self.trusted()
-            await self.serial.write(self.temp.render(i=self.curr_mac).encode('utf-8'))
+            await self.serial.write(self.temp.render(i=self.current_id).encode('utf-8'))
         elif self.reg_state == RegState.Success:
             self.count += 1
             self.reg_state = RegState.Wait
@@ -63,11 +63,11 @@ class MainDialog(ReactiveDialog):
     @state(False)
     def com_online(self, _) -> bool: ...
 
-    @computed(bind='current_id')
-    def curr_mac(self):
+    @control
+    def current_id(self):
         return f'MAC2{str(self.count).rjust(6, "0")}'
 
-    @computed(bind='reg_status')
+    @control
     def reg_status(self):
         if not self.com_online:
             return {
@@ -90,7 +90,7 @@ class MainDialog(ReactiveDialog):
                 'style': 'color: green'
             }
 
-    @computed(bind='btn_next')
+    @control
     def btn_next(self):
         return {
             'disabled': self.reg_state == RegState.Process or not self.com_online,
