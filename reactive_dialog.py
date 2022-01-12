@@ -5,6 +5,8 @@ import asyncio
 from asyncio import Future
 from dialog_base import DialogBase
 import inspect
+from functools import wraps
+from types import MethodType
 
 class RenderAdapter(metaclass=ABCMeta):
     def __init__(self, comp: QWidget, props):
@@ -56,6 +58,32 @@ def _handle_bind(rx: 'ReactiveDialog', bind, value):
         target = getattr(rx.ui, bind)
         rx._update_task(target, value)
 
+class Later:
+    def __init__(self, f) -> None:
+        self.__f = f
+        self.__args = None
+        self.__kwds = None
+        self.__triggered = False
+
+    def __call__(self, *args, **kwds):
+        self.__args = args
+        self.__kwds = kwds
+        if not self.__triggered:
+            self.__triggered = True
+            asyncio.get_event_loop().call_soon(self.__invoke)
+
+    def __get__(self, instance, _):
+        return self if instance is None else MethodType(self, instance)
+    
+    @property
+    def triggered(self): return self.__triggered
+
+    def __invoke(self):
+        self.__f(*self.__args, **self.__kwds)
+        self.__args = None
+        self.__kwds = None
+        self.__triggered = False
+
 def state(default=None, bind=None):
     def deco(func):
         private_name = f'_{func.__name__}_state'
@@ -71,11 +99,10 @@ def state(default=None, bind=None):
                 d.__rx_dirty__ = True
                 self._push_computed(d)
             setattr(self, private_name, value)
-            if not self._enterred:
-                self._enterred = True
-                asyncio.get_event_loop().call_soon(self._pre_render)
+            self._pre_render()
             if not fake:
                 _handle_bind(self, bind, value)
+        
         def connect(self: 'ReactiveDialog'):
             ret_type = inspect.signature(func).return_annotation
             if bind is not None:
@@ -109,7 +136,7 @@ def computed(bind=None):
     def deco(func):
         private_name = f'_{func.__name__}_computed'
         def getter(self: 'ReactiveDialog', fake = False):
-            if not fake and self._enterred:
+            if not fake and self._pre_render.triggered:
                 raise Exception('state not trusted')
             ctx = self._get_dep_ctx()
             if ctx is not None:
@@ -151,7 +178,6 @@ def _is_computed(p: property):
 class ReactiveDialog(DialogBase):
     def __init__(self, parent=None, ui=None):
         super().__init__(parent, ui)
-        self._enterred = False
         self._tasks: List[RenderAdapter] = []
         self._dep_ctx = []
         self._q_computeds = set()
@@ -166,13 +192,13 @@ class ReactiveDialog(DialogBase):
 
     async def trusted(self, f: Future = None):
         if f is None:
-            if not self._enterred: return
+            if not self._pre_render.triggered: return
             else:
                 f = Future()
                 asyncio.gather(self.trusted(f))
                 await f
         else:
-            if not self._enterred: f.set_result(None)
+            if not self._pre_render.triggered: f.set_result(None)
             else: asyncio.gather(self.trusted(f))
 
     def _get_dep_ctx(self):
@@ -193,6 +219,7 @@ class ReactiveDialog(DialogBase):
         if not existed:
             self._tasks.append(create_adapter(comp, props))
 
+    @Later
     def _pre_render(self):
         while len(self._q_computeds) > 0:
             cpt = self._q_computeds.pop()
@@ -200,7 +227,6 @@ class ReactiveDialog(DialogBase):
         for task in self._tasks:
             task.render()
         self._tasks.clear()
-        self._enterred = False
 
     @computed()
     def _render(self):
