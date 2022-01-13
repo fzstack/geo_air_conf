@@ -1,5 +1,5 @@
 from typing import List
-from reactive_dialog import ReactiveDialog, computed, state
+from reactive_dialog import ReactiveDialog, state
 from conf_ui import Ui_Conf
 import serial.tools.list_ports
 from PyQt5.QtWidgets import QMessageBox
@@ -9,11 +9,9 @@ class ConfDialog(ReactiveDialog):
     def __init__(self, parent=None):
         super().__init__(parent, Ui_Conf())
         self.update_com_list()
-        self.confirm = False
 
     def start_clicked(self):
-        self.confirm = True
-        self.close()
+        self.submit((self.curr_serial_no, self.initial))
 
     def refresh_clicked(self):
         self.update_com_list()
@@ -25,9 +23,6 @@ class ConfDialog(ReactiveDialog):
         self.ui.combo_serial_no.clear()
         for item in com_list:
             self.ui.combo_serial_no.addItem(item, item)
-        
-    def get_result(self):
-        if self.confirm: return (self.curr_serial_no, self.initial)
 
     @state(0, bind='spin_initial')
     def initial(self, _) -> int: ...
